@@ -1,6 +1,8 @@
 # NextDrop
 NextDrop is a high-speed data pipeline capable of transferring large files efficiently, with a peak transfer rate allowing for 3GB of data to be received in under 10 seconds, making it a standout system for rapid file transfers.
 
+**Speed in Peak transfer rate:** 3GB /10sec
+
 ## Installation
 
 To install NextDrop, ensure you have Python 3.7+ installed along with the required dependencies. Run the following command:
