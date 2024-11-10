@@ -1,11 +1,12 @@
 from setuptools import setup
 
-APP = ['gui.py'] 
+APP = ['NextDrop.py'] 
 DATA_FILES = []
 OPTIONS = {
     'argv_emulation': True,
-    'includes': ['PyQt6', 'asyncio', 'aiohttp', 'concurrent.futures'],  # 依存ライブラリを指定
-    'packages': ['aiohttp', 'asyncio', 'concurrent', 'PyQt6']  # 使用するパッケージをリスト化
+    'includes': ['PyQt6', 'asyncio', 'aiohttp', 'concurrent.futures'],
+    'excludes': ['packaging'],  # 衝突するライブラリを除外
+    'packages': ['aiohttp', 'asyncio', 'concurrent', 'PyQt6'],
 }
 
 setup(
