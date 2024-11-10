@@ -6,10 +6,8 @@ NextDrop is a high-speed data pipeline capable of transferring large files effic
 To install NextDrop, ensure you have Python 3.7+ installed along with the required dependencies. Run the following command:
 
 ```bash
-pip install aiohttp tqdm KamuJpModern
+pip install aiohttp tqdm kamu-jp-modern
 ```
-
-Make sure to replace `KamuJpModern` with the correct package if using a different version or package name.
 
 ## Usage
 
