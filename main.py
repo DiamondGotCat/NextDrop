@@ -1,7 +1,7 @@
 # NextDrop - High-Speed Data Pipeline
 
+import math
 from KamuJpModern.ModernLogging import ModernLogging
-from KamuJpModern.ModernProgressBar import ModernProgressBar
 import asyncio
 import aiohttp
 import aiohttp.web
@@ -27,7 +27,11 @@ class FileSender:
 
     async def send_file(self):
         file_size = os.path.getsize(self.file_path)
-        total_chunks = (file_size + CHUNK_SIZE - 1) // CHUNK_SIZE
+        if file_size == 0:
+            total_chunks = 1
+            logger.log("File size is 0. Setting total_chunks to 1.", "WARNING")
+        else:
+            total_chunks = math.ceil(file_size / CHUNK_SIZE)
 
         if self.compress:
             logger.log("Sending in compression mode.", "INFO")
@@ -35,8 +39,8 @@ class FileSender:
         async with aiohttp.ClientSession() as session:
             tasks = []
             with open(self.file_path, 'rb') as f:
-                progress_bar = ModernProgressBar(total_chunks, "Compressing", 32)
-                progress_bar.start()
+                compress_bar = tqdm(total=total_chunks, desc="Processing", unit="chunk")
+                send_bar = tqdm(total=total_chunks, desc="Sending", unit="chunk")
                 for i in range(total_chunks):
                     chunk = f.read(CHUNK_SIZE)
                     if self.compress:
@@ -47,12 +51,14 @@ class FileSender:
                         data = compressed_chunk
                     else:
                         data = chunk
-                    progress_bar.update(1)
-                    task = asyncio.create_task(self.send_chunk(session, data, i, total_chunks if i == 0 else None))
+                    compress_bar.update(1)
+                    task = asyncio.create_task(self.send_chunk(session, data, i, total_chunks if i == 0 else None, send_bar))
                     tasks.append(task)
             await asyncio.gather(*tasks)
+            compress_bar.close()
+            send_bar.close()
 
-    async def send_chunk(self, session, chunk, chunk_number, total_chunks=None):
+    async def send_chunk(self, session, chunk, chunk_number, total_chunks=None, send_bar=None):
         url = f'http://{self.target}:{self.port}/upload?chunk_number={chunk_number}'
         headers = {}
         if chunk_number == 0:
@@ -61,9 +67,12 @@ class FileSender:
         try:
             async with session.post(url, data=chunk, headers=headers) as resp:
                 if resp.status != 200:
-                    logger.log(f"チャンク {chunk_number} の送信に失敗しました: ステータス {resp.status}", "ERROR")
+                    logger.log(f"Failed to send chunk {chunk_number}: Status {resp.status}", "ERROR")
+                else:
+                    if send_bar:
+                        send_bar.update(1)
         except Exception as e:
-            logger.log(f"チャンク {chunk_number} の送信中に例外が発生しました: {e}", "ERROR")
+            logger.log(f"Exception occurred while sending chunk {chunk_number}: {e}", "ERROR")
 
 class FileReceiver:
     def __init__(self, port, save_dir, compress=False):
@@ -74,39 +83,42 @@ class FileReceiver:
         self.lock = asyncio.Lock()
         self.filename = None
         self.total_chunks = None
+        self.recive_bar = None
 
     async def handle_upload(self, request):
         if request.path == '/upload' and request.method == 'POST':
             try:
                 chunk_number = int(request.query.get('chunk_number', -1))
                 if chunk_number == -1:
-                    logger.log("チャンク番号が指定されていません", "ERROR")
-                    return aiohttp.web.Response(status=400, text="チャンク番号が指定されていません")
+                    return aiohttp.web.Response(status=400, text="ERROR: Invalid chunk number")
                 data = await request.read()
 
                 # 最初のチャンクでファイル名と総チャンク数を取得
                 if chunk_number == 0:
                     self.filename = request.headers.get('X-Filename', f"received_file_{int(asyncio.get_event_loop().time())}")
                     self.total_chunks = int(request.headers.get('X-Total-Chunks', '1'))
-                    logger.log(f"受信ファイル名: {self.filename}", "INFO")
-                    logger.log(f"総チャンク数: {self.total_chunks}", "INFO")
+                    self.recive_bar = tqdm(total=self.total_chunks, desc="Receiving", unit="chunk")
 
                 async with self.lock:
                     self.chunks[chunk_number] = data
 
-                logger.log(f"チャンク {chunk_number} を受信しました。サイズ: {len(data)} バイト", "INFO")
+                if self.recive_bar:
+                    self.recive_bar.update(1)
+
+                    if not self.recive_bar.n == (chunk_number + 1):
+                        self.recive_bar.update((chunk_number + 1) - self.recive_bar.n)
 
                 # すべてのチャンクを受信した場合、ファイルを保存
                 if self.total_chunks is not None and len(self.chunks) == self.total_chunks:
-                    logger.log("すべてのチャンクを受信しました。ファイルを保存します。", "INFO")
+                    self.recive_bar.close()
                     asyncio.create_task(self.save_file())
 
-                return aiohttp.web.Response(status=200, text="チャンクを受信しました")
+                return aiohttp.web.Response(status=200, text="Chunk received")
             except Exception as e:
-                logger.log(f"サーバーエラー: {e}", "ERROR")
-                return aiohttp.web.Response(status=500, text=f"サーバーエラー: {e}")
-        logger.log(f"不明なリクエストパスまたはメソッド: {request.method} {request.path}", "WARNING")
-        return aiohttp.web.Response(status=404, text="見つかりません")
+                logger.log(f"Server error: {e}", "ERROR")
+                return aiohttp.web.Response(status=500, text=f"Server error: {e}")
+        logger.log(f"Unknown request path or method: {request.method} {request.path}", "WARNING")
+        return aiohttp.web.Response(status=404, text="Not found")
 
     async def start_server(self):
         app = aiohttp.web.Application(client_max_size=1024 * 1024 * 1024 * 5)  # 最大5GBに設定
@@ -121,18 +133,18 @@ class FileReceiver:
 
     async def save_file(self):
         if not self.chunks:
-            logger.log("受信したチャンクがありません。保存を中止します。", "WARNING")
+            logger.log("No received chunks. Saving aborted.", "WARNING")
             return
 
         sorted_chunks = sorted(self.chunks.items())
         file_data = b''.join([chunk for _, chunk in sorted_chunks])
 
         if self.compress:
-            logger.log("データを解凍中です。", "INFO")
+            logger.log("Decompressing data.", "INFO")
             try:
                 file_data = gzip.decompress(file_data)
             except gzip.BadGzipFile:
-                logger.log("解凍に失敗しました。送信側の圧縮設定を確認してください。", "ERROR")
+                logger.log("Decompression failed. Check the compression setting on the sender side.", "ERROR")
                 return
 
         save_path = os.path.join(self.save_dir, self.filename)
@@ -140,9 +152,15 @@ class FileReceiver:
         try:
             with open(save_path, 'wb') as f:
                 f.write(file_data)
-            logger.log(f"ファイル '{self.filename}' を '{self.save_dir}' に保存しました。", "INFO")
+            logger.log(f"File '{self.filename}' saved to '{self.save_dir}'.", "INFO")
+
+            self.chunks = {}
+            self.filename = None
+            self.total_chunks = None
+            self.recive_bar = None
+            
         except Exception as e:
-            logger.log(f"ファイルの保存中にエラーが発生しました: {e}", "ERROR")
+            logger.log(f"An error occurred while saving the file: {e}", "ERROR")
 
 def get_local_ip():
     hostname = socket.gethostname()
@@ -175,22 +193,24 @@ async def main():
         sender = FileSender(args.target, args.port, args.file_path, args.threads, args.compress)
         await sender.send_file()
         logger.log("File sending completed.", "INFO")
-    
     elif args.mode == 'receive':
         if not os.path.isdir(args.save_dir):
             logger.log(f"Error: Directory '{args.save_dir}' does not exist.", "ERROR")
             sys.exit(1)
         receiver = FileReceiver(args.port, args.save_dir, args.compress)
         receiver_task = asyncio.create_task(receiver.start_server())
-        try:
-            await receiver_task
-        except KeyboardInterrupt:
-            logger.log("Receiving stopped.", "INFO")
-            sys.exit(0)
-    
+        await receiver_task
     else:
         parser.print_help()
         sys.exit(1)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    
+    try:
+
+        asyncio.run(main())
+
+    except KeyboardInterrupt:
+
+        logger.log("Keyboard interrupt detected. Exiting...", "INFO")
+        
