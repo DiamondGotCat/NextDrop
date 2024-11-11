@@ -35,7 +35,9 @@ python nextdrop.py send <target_ip> --port <port> <file_path> [--threads <num_th
 - `--port <port>`: Port on which the receiver is listening (default is `4321`).
 - `<file_path>`: Path to the file you want to send.
 - `--threads <num_threads>`: Number of threads to use (default is `1`).
-- `--compress`: Optional flag to compress the file before sending.
+- `--compress`: Optional flag to compress the file before sending.[^1]
+
+[^1]: The `—compress` flag is an optional parameter that allows you to compress the file before sending it. However, it’s important to note that this option may slow down the transmission process, especially for larger files.
 
 #### Example
 
@@ -53,7 +55,9 @@ python nextdrop.py receive --port <port> <save_dir> [--compress]
 
 - `--port <port>`: Port to listen on for incoming file transfers (default is `4321`).
 - `<save_dir>`: Directory where received files will be saved.
-- `--compress`: Optional flag to decompress the file if it was sent in compressed mode.
+- `--compress`: Optional flag to decompress the file if it was sent in compressed mode.[^2]
+
+[^2]: Please make sure it matches the presence or absence of the `--compress` option specified at the time of sending.
 
 #### Example
 
