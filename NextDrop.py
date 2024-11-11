@@ -8,14 +8,21 @@ import aiohttp
 import aiohttp.web
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QFileDialog, QVBoxLayout, QHBoxLayout, QWidget,
-    QPushButton, QLineEdit, QLabel, QCheckBox, QSpinBox, QTextEdit, QFrame, QProgressBar, QListWidget
+    QPushButton, QLineEdit, QLabel, QCheckBox, QProgressBar, QListWidget
 )
 from PyQt6.QtCore import QThread, pyqtSignal, QObject, Qt
-from PyQt6.QtGui import QIcon, QFont, QPalette, QColor
+from PyQt6.QtGui import QIcon, QFont, QPalette, QColor, QIntValidator
 from io import BytesIO
-from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+import socket
 
 CHUNK_SIZE = 1024 * 1024  # 1MB
+
+# 固定ポート番号
+FIXED_PORT = 4321
+
+# 受信先ディレクトリをユーザーのダウンロードフォルダに固定
+DEFAULT_SAVE_DIR = str(Path.home() / "Downloads")
 
 # ModernLogging class for logging
 class ModernLogging:
@@ -30,10 +37,10 @@ class FileSender(QObject):
     progress_signal = pyqtSignal(int)
     queue_signal = pyqtSignal(str)
 
-    def __init__(self, target, port, file_path, num_threads=4, compress=False, progress_callback=None, queue_callback=None):
+    def __init__(self, target, file_path, num_threads=4, compress=False, progress_callback=None, queue_callback=None):
         super().__init__()
         self.target = target
-        self.port = port
+        self.port = FIXED_PORT  # 固定ポートを使用
         self.file_path = file_path
         self.num_threads = num_threads
         self.compress = compress
@@ -96,7 +103,6 @@ class FileSender(QObject):
 class FileReceiver(QObject):
     queue_signal = pyqtSignal(str)
     progress_signal = pyqtSignal(int)
-    queue_signal = pyqtSignal(str)
 
     def __init__(self, port, save_dir, compress=False, progress_callback=None):
         super().__init__()
@@ -133,7 +139,8 @@ class FileReceiver(QObject):
 
                 # Update progress
                 if self.progress_callback and self.total_chunks:
-                    self.progress_callback.emit(100)
+                    progress = int((len(self.chunks) / self.total_chunks) * 100)
+                    self.progress_callback.emit(progress)
 
                 # すべてのチャンクを受信した場合、ファイルを保存
                 if self.total_chunks is not None and len(self.chunks) == self.total_chunks:
@@ -192,23 +199,28 @@ class SendWorker(QThread):
     progress_signal = pyqtSignal(int)
     queue_signal = pyqtSignal(str)
 
-    def __init__(self, target, port, file_path, num_threads, compress):
+    def __init__(self, target, file_path, num_threads, compress):
         super().__init__()
         self.target = target
-        self.port = port
         self.file_path = file_path
         self.num_threads = num_threads
         self.compress = compress
 
-    async def send_file(self):
-        sender = FileSender(self.target, self.port, self.file_path, self.num_threads, self.compress, 
-                            progress_callback=self.progress_signal, queue_callback=self.queue_signal)
+    async def send_file_async(self):
+        sender = FileSender(
+            self.target,
+            self.file_path,
+            self.num_threads,
+            self.compress,
+            progress_callback=self.progress_signal,
+            queue_callback=self.queue_signal
+        )
         await sender.send_file()
 
     def run(self):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        loop.run_until_complete(self.send_file())
+        loop.run_until_complete(self.send_file_async())
 
 class ReceiveWorker(QThread):
     log_signal = pyqtSignal(str)
@@ -221,22 +233,26 @@ class ReceiveWorker(QThread):
         self.save_dir = save_dir
         self.compress = compress
 
-    async def start_receiver(self):
-        receiver = FileReceiver(self.port, self.save_dir, self.compress, progress_callback=self.progress_signal)
-        receiver.progress_signal.connect(self.progress_signal)
+    async def start_receiver_async(self):
+        receiver = FileReceiver(
+            self.port,
+            self.save_dir,
+            self.compress,
+            progress_callback=self.progress_signal
+        )
         receiver.queue_signal.connect(self.queue_signal)
         await receiver.start_server()
 
     def run(self):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        loop.run_until_complete(self.start_receiver())
+        loop.run_until_complete(self.start_receiver_async())
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("NextDrop - GUI")
-        self.setGeometry(100, 100, 1000, 600)
+        self.setGeometry(100, 100, 1000, 500)
         self.setWindowIcon(QIcon("icon.png"))  # Optional: Add a custom icon
         self.setStyleSheet("background-color: #2C3E50;")
         
@@ -254,8 +270,22 @@ class MainWindow(QMainWindow):
         palette.setColor(QPalette.ColorRole.BrightText, QColor("#E74C3C"))
         self.setPalette(palette)
         
-        # Main layout
-        main_layout = QHBoxLayout()
+        # Main layout as QVBoxLayout to add IP display at the top
+        main_layout = QVBoxLayout()
+        
+        # IP Display Label
+        ip_label = QLabel(f"{self.get_private_ip()}")
+        ip_label.setStyleSheet("""
+            color: #1ABC9C;
+            font-size: 48px;
+            font-weight: bold;
+        """)
+        ip_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        main_layout.addWidget(ip_label)
+        
+        # Horizontal layout for left and right sections
+        horizontal_layout = QHBoxLayout()
+        
         left_layout = QVBoxLayout()
         left_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         right_layout = QVBoxLayout()
@@ -268,7 +298,7 @@ class MainWindow(QMainWindow):
                 font-weight: bold;
                 color: #ECF0F1;
             }
-            QLineEdit, QSpinBox, QTextEdit {
+            QLineEdit, QTextEdit {
                 font-size: 13px;
                 padding: 5px;
                 background-color: #34495E;
@@ -297,14 +327,23 @@ class MainWindow(QMainWindow):
         send_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
         left_layout.addWidget(send_label)
 
-        self.target_input = QLineEdit(self)
-        self.target_input.setPlaceholderText("Target IP address")
-        left_layout.addWidget(self.target_input)
-
-        self.port_input = QSpinBox(self)
-        self.port_input.setRange(1, 65535)
-        self.port_input.setValue(4321)
-        left_layout.addWidget(self.port_input)
+        # IP Address Input Fields (4 x QLineEdit with dots)
+        ip_input_layout = QHBoxLayout()
+        self.ip_fields = []
+        ip_validator = QIntValidator(0, 255, self)
+        for i in range(4):
+            ip_field = QLineEdit(self)
+            ip_field.setMaxLength(3)
+            ip_field.setValidator(ip_validator)
+            ip_field.setFixedWidth(84)
+            ip_field.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.ip_fields.append(ip_field)
+            ip_input_layout.addWidget(ip_field)
+            if i < 3:
+                dot_label = QLabel(".")
+                dot_label.setStyleSheet("color: #ECF0F1; font-size: 24px;")
+                ip_input_layout.addWidget(dot_label)
+        left_layout.addLayout(ip_input_layout)
 
         self.file_path_display = QLineEdit(self)
         self.file_path_display.setPlaceholderText("Path to the file you want to send")
@@ -321,6 +360,8 @@ class MainWindow(QMainWindow):
         self.send_button.clicked.connect(self.send_file)
         left_layout.addWidget(self.send_button)
 
+        # 受信設定を非表示にするために以下のコードを削除またはコメントアウト
+        """
         # File receiving widgets (Bottom-left)
         receive_label = QLabel("File receiving")
         receive_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
@@ -345,21 +386,21 @@ class MainWindow(QMainWindow):
         self.receive_button = QPushButton("Start receiving", self)
         self.receive_button.clicked.connect(self.receive_file)
         left_layout.addWidget(self.receive_button)
+        """
 
         # Progress bar and queue list for sending and receiving (Right-side)
-        progress_label = QLabel("Sending:")
-        progress_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
-        right_layout.addWidget(progress_label)
+        send_progress_label = QLabel("Sending:")
+        send_progress_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        right_layout.addWidget(send_progress_label)
 
         # Progress bar for sending
         self.send_progress_bar = QProgressBar(self)
         self.send_progress_bar.setValue(0)
         right_layout.addWidget(self.send_progress_bar)
 
-        # Progress bar and queue list for sending and receiving (Right-side)
-        progress_label = QLabel("Receiving:")
-        progress_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
-        right_layout.addWidget(progress_label)
+        receive_progress_label = QLabel("Receiving:")
+        receive_progress_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        right_layout.addWidget(receive_progress_label)
       
         # Progress bar for receiving
         self.receive_progress_bar = QProgressBar(self)
@@ -369,63 +410,102 @@ class MainWindow(QMainWindow):
         # Queue list for sending
         self.send_queue_list = QListWidget(self)
         right_layout.addWidget(self.send_queue_list)
-        
-        # Adding layouts to the main layout
-        main_layout.addLayout(left_layout)
-        main_layout.addLayout(right_layout)
+
+        # Adding left and right layouts to the horizontal layout
+        horizontal_layout.addLayout(left_layout)
+        horizontal_layout.addLayout(right_layout)
+
+        # Adding the horizontal layout to the main vertical layout
+        main_layout.addLayout(horizontal_layout)
 
         # Main widget settings
         container = QWidget()
         container.setLayout(main_layout)
         self.setCentralWidget(container)
 
+        # アプリ起動時に受信を開始
+        self.start_receiving()
+
+    def get_private_ip(self):
+        """取得ローカルマシンのプライベートIPv4アドレス"""
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            # ダミー接続でIPアドレスを取得
+            s.connect(('10.255.255.255', 1))
+            IP = s.getsockname()[0]
+        except Exception:
+            IP = '127.0.0.1'
+        finally:
+            s.close()
+        return IP
+
     def log(self, message):
-        self.log_display.append(message)
+        self.send_queue_list.addItem(message)
 
     def browse_file(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Select file")
         if file_path:
             self.file_path_display.setText(file_path)
 
-    def browse_dir(self):
-        directory = QFileDialog.getExistingDirectory(self, "Select directory")
-        if directory:
-            self.save_dir_display.setText(directory)
-
     def send_file(self):
-        target = self.target_input.text()
-        port = self.port_input.value()
+        # IPアドレスを4つのフィールドから取得して結合
+        ip_parts = []
+        for field in self.ip_fields:
+            text = field.text()
+            if not text:
+                self.send_queue_list.addItem("Error: IP address field cannot be empty")
+                return
+            ip_parts.append(text)
+        target = ".".join(ip_parts)
+
         file_path = self.file_path_display.text()
         compress = self.compress_checkbox.isChecked()
-        num_threads = 4  # Set the number of threads as needed
+        num_threads = 4  # 必要に応じてスレッド数を設定
 
         if not os.path.isfile(file_path):
-            self.log("Error: File does not exist")
+            self.send_queue_list.addItem("Error: File does not exist")
+            return
+
+        if not target:
+            self.send_queue_list.addItem("Error: Target IP address is required")
+            return
+
+        # Validate each part of the IP address
+        try:
+            parts = target.split('.')
+            if len(parts) != 4:
+                raise ValueError("Invalid IP address format")
+            for part in parts:
+                num = int(part)
+                if num < 0 or num > 255:
+                    raise ValueError("IP address parts must be between 0 and 255")
+        except ValueError as ve:
+            self.send_queue_list.addItem(f"Error: {ve}")
             return
 
         # Start the send worker thread
-        self.send_worker = SendWorker(target, port, file_path, num_threads, compress)
+        self.send_worker = SendWorker(target, file_path, num_threads, compress)
         self.send_worker.log_signal.connect(self.log)
         self.send_worker.progress_signal.connect(self.send_progress_bar.setValue)
-        self.send_worker.queue_signal.connect(self.send_queue_list.addItem)
+        self.send_worker.queue_signal.connect(lambda msg: self.send_queue_list.addItem(msg))
         self.send_worker.start()
 
-    def receive_file(self):
-        port = self.receive_port_input.value()
-        save_dir = self.save_dir_display.text()
-        compress = self.decompress_checkbox.isChecked()
-
-        if not os.path.isdir(save_dir):
-            self.log("Error: Directory does not exist")
-            return
+    # 受信機能を自動化
+    def start_receiving(self):
+        port = FIXED_PORT  # 固定ポート
+        save_dir = DEFAULT_SAVE_DIR  # 固定受信先
+        compress = False  # 必要に応じて設定
 
         # Start the receive worker thread
         self.receive_worker = ReceiveWorker(port, save_dir, compress)
         self.receive_worker.log_signal.connect(self.log)
         self.receive_worker.progress_signal.connect(self.receive_progress_bar.setValue)
+        self.receive_worker.queue_signal.connect(lambda msg: self.send_queue_list.addItem(msg))
         self.receive_worker.start()
 
-app = QApplication(sys.argv)
-window = MainWindow()
-window.show()
-sys.exit(app.exec())
+# Main application execution
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec())
