@@ -53,7 +53,7 @@ if __name__ == '__main__':
     asyncio.run(file_send_example())
 ```
 
-### Sending Mode
+### CLI Sending Mode
 
 To send a file, use the following command:
 
@@ -72,7 +72,7 @@ python nextdrop.py send <target_ip> --port <port> <file_path> [--threads <num_th
 python nextdrop.py send 192.168.1.10 --port 4321 /path/to/file.zip --threads 4
 ```
 
-### Receiving Mode
+### CLI Receiving Mode
 
 To start a receiver server, use the following command:
 
