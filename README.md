@@ -7,6 +7,11 @@ NextDrop is a high-speed data pipeline capable of transferring large files effic
 
 To install NextDrop, ensure you have Python 3.7+ installed along with the required dependencies. Run the following command:
 
+**Library Version**
+```bash
+pip install next-drop-lib
+```
+
 **Command-Line Version (`main.py`)**
 
 ```bash
@@ -22,6 +27,31 @@ pip install kamu-jp-modern PyQt6 aiohttp tqdm zstandard
 ## Usage
 
 NextDrop operates in two modes: sending and receiving. Below are the details for each mode.
+
+### Library (Example)
+```python
+import asyncio
+from next_drop_lib import FileSender, FileReceiver, NextDropGeneral
+import threading
+import time
+
+async def file_send_example():
+    await FileSender("localhost", port=4321, file_path="./test.txt").send_file()
+
+async def file_receive_example():
+    await FileReceiver(port=4321, save_dir="./recived/").start_server()
+    await asyncio.sleep(5)
+
+def start_server():
+    asyncio.run(file_receive_example())
+
+if __name__ == '__main__':
+    # Start the server in a separate thread
+    threading.Thread(target=start_server).start()
+
+    # Start the file sender
+    asyncio.run(file_send_example())
+```
 
 ### Sending Mode
 
