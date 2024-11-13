@@ -10,13 +10,13 @@ To install NextDrop, ensure you have Python 3.7+ installed along with the requir
 **Command-Line Version (`main.py`)**
 
 ```bash
-pip install kamu-jp-modern aiohttp tqdm
+pip install kamu-jp-modern aiohttp tqdm zstandard
 ```
 
 **GUI Version (`NextDrop.py`)**
 
 ```bash
-pip install kamu-jp-modern PyQt6 aiohttp tqdm
+pip install kamu-jp-modern PyQt6 aiohttp tqdm zstandard
 ```
 
 ## Usage
