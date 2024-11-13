@@ -28,21 +28,18 @@ NextDrop operates in two modes: sending and receiving. Below are the details for
 To send a file, use the following command:
 
 ```bash
-python nextdrop.py send <target_ip> --port <port> <file_path> [--threads <num_threads>] [--compress]
+python nextdrop.py send <target_ip> --port <port> <file_path> [--threads <num_threads>]
 ```
 
 - `<target_ip>`: IP address of the receiving server.
 - `--port <port>`: Port on which the receiver is listening (default is `4321`).
 - `<file_path>`: Path to the file you want to send.
 - `--threads <num_threads>`: Number of threads to use (default is `1`).
-- `--compress`: Optional flag to compress the file before sending.[^1]
-
-[^1]: The `—compress` flag is an optional parameter that allows you to compress the file before sending it. However, it’s important to note that this option may slow down the transmission process, especially for larger files.
 
 #### Example
 
 ```bash
-python nextdrop.py send 192.168.1.10 --port 4321 /path/to/file.zip --threads 4 --compress
+python nextdrop.py send 192.168.1.10 --port 4321 /path/to/file.zip --threads 4
 ```
 
 ### Receiving Mode
@@ -55,9 +52,6 @@ python nextdrop.py receive --port <port> <save_dir> [--compress]
 
 - `--port <port>`: Port to listen on for incoming file transfers (default is `4321`).
 - `<save_dir>`: Directory where received files will be saved.
-- `--compress`: Optional flag to decompress the file if it was sent in compressed mode.[^2]
-
-[^2]: Please make sure it matches the presence or absence of the `--compress` option specified at the time of sending.
 
 #### Example
 
