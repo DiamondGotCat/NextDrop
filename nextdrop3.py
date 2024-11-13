@@ -1,4 +1,4 @@
-# NextDrop - High-Speed Data Pipeline - Final Optimized Version
+# NextDrop - High-Speed Data Pipeline - Final Optimized Version with Fixes
 
 import math
 import asyncio
@@ -127,7 +127,7 @@ class FileReceiver:
         self.max_retries = 3  # 再試行回数
 
     async def start_server(self):
-        async def handler(websocket, path):
+        async def handler(websocket):
             # メタデータの受信
             metadata_str = await websocket.recv()
             metadata = json.loads(metadata_str)
@@ -228,7 +228,7 @@ async def main():
     send_parser.add_argument('--port', type=int, help='Target port number', default=4321)
     send_parser.add_argument('file_path', type=str, help='Path of the file to send')
     send_parser.add_argument('--compress', action='store_true', help='Compress the file before sending')
-    send_parser.add_argument('--version', type=str, default="3.0", help='Version of the nextdp protocol')
+    send_parser.add_argument('--version', type=str, default="2.0", help='Version of the nextdp protocol')
 
     # Receive mode arguments
     receive_parser = subparsers.add_parser('receive', help='Receive a file')
