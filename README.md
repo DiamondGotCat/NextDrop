@@ -1,7 +1,7 @@
 # NextDrop
 NextDrop is a high-speed data pipeline capable of transferring large files efficiently, with a peak transfer rate allowing for 3GB of data to be received in under 10 seconds, making it a standout system for rapid file transfers.
 
-**Speed in Peak transfer rate:** 3GB /5sec
+**Speed in Peak transfer rate (Latest):** 3GB /5sec
 
 ## Installation
 
