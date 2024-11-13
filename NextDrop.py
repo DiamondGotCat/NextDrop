@@ -165,7 +165,7 @@ class FileReceiver(QObject):
         return aiohttp.web.Response(status=404, text="Not Found")
 
     async def start_server(self):
-        app = aiohttp.web.Application(client_max_size=1024 * 1024 * 1024 * 5)  # Set maximum to 5GB
+        app = aiohttp.web.Application(client_max_size=1024 * 1024 * 1024 * 20)  # Set maximum to 20GB
         app.router.add_post('/upload', self.handle_upload)
         runner = aiohttp.web.AppRunner(app)
         await runner.setup()
