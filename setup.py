@@ -1,41 +1,21 @@
 from setuptools import setup, find_packages
 
-APP = ['NextDrop.py']
-DATA_FILES = []
-OPTIONS = {
-    'argv_emulation': True,
-    'includes': [
-        'kamu-jp-modern',
-        'PyQt6',
-        'asyncio',
-        'aiohttp',
-        'aiohttp.web',
-        'socket',
-        'os',
-        'sys',
-        'gzip',
-        'argparse',
-        'concurrent.futures',
-        'tqdm',
-        'io',
-        # 必要な他のモジュールをここに追加
-    ],
-    'excludes': ['packaging'],
-    'packages': find_packages(),
-    'plist': {
-        'CFBundleName': 'NextDrop',
-        'CFBundleDisplayName': 'NextDrop',
-        'CFBundleGetInfoString': "NextDrop Application",
-        'CFBundleIdentifier': "com.yourname.nextdrop",
-        'CFBundleVersion': "0.1.0",
-        'CFBundleShortVersionString': "0.1.0",
-        'NSHighResolutionCapable': True,
-    },
-}
-
 setup(
-    app=APP,
-    data_files=DATA_FILES,
-    options={'py2app': OPTIONS},
-    setup_requires=['py2app'],
+    name="next-drop-lib",
+    version="2.0.1",
+    description="A high-speed data pipeline library",
+    author="DiamondGotCat",
+    author_email="chii@kamu.jp",
+    packages=find_packages(),
+    install_requires=[
+        "aiohttp",
+        "tqdm",
+        "zstandard",
+    ],
+    python_requires=">=3.7",
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ],
 )
