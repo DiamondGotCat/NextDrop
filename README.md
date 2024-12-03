@@ -10,7 +10,7 @@ Most Fast in My Project.
 **PEEK SPEED:** 6.2GB / 6.2sec
 
 ### 2. NextDP(NextDrop)
-Official Python Library is Available.
+Python Library is Available.
 **PEEK SPEED:** 3GB / 5sec
 
 ## Note
