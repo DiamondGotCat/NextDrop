@@ -7,7 +7,7 @@ NextDrop is a high-speed data pipeline capable of transferring large files effic
 
 ### 1. UltraDP
 Most Fast in My Project.
-**PEEK SPEED:** 2.46GB / 3sec
+**PEEK SPEED:** 2.5GB / 3sec
 
 ### 2. FastDP | NextDP(NextDrop)
 **PEEK SPEED:** 3GB / 5sec
