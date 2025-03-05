@@ -10,7 +10,7 @@ Most Fast in My Project.
 **PEEK SPEED:** 6.2GB / 6.2sec
 
 ### 2. NextDP(NextDrop)
-Python Library is Available.
+python3Library is Available.
 **PEEK SPEED:** 3GB / 5sec
 
 ## Note
@@ -18,23 +18,23 @@ Python Library is Available.
 
 ## Installation
 
-To install NextDrop, ensure you have Python 3.7+ installed along with the required dependencies. Run the following command:
+To install NextDrop, ensure you have python33.7+ installed along with the required dependencies. Run the following command:
 
 **Library Version**
 ```bash
-pip install next-drop-lib
+pip3 install next-drop-lib
 ```
 
 **Command-Line Version Requiments (`main.py`)**
 
 ```bash
-pip install kamu-jp-modern aiohttp tqdm zstandard
+pip3 install kamu-jp-modern aiohttp tqdm zstandard
 ```
 
 **GUI Version Requiments (`NextDrop.py`)**
 
 ```bash
-pip install kamu-jp-modern PyQt6 aiohttp tqdm zstandard
+pip3 install kamu-jp-modern PyQt6 aiohttp tqdm zstandard
 ```
 
 ## Usage
@@ -71,7 +71,7 @@ if __name__ == '__main__':
 To send a file, use the following command:
 
 ```bash
-python nextdrop.py send <target_ip> --port <port> <file_path> [--threads <num_threads>]
+python3nextdrop.py send <target_ip> --port <port> <file_path> [--threads <num_threads>]
 ```
 
 - `<target_ip>`: IP address of the receiving server.
@@ -82,7 +82,7 @@ python nextdrop.py send <target_ip> --port <port> <file_path> [--threads <num_th
 #### Example
 
 ```bash
-python nextdrop.py send 192.168.1.10 --port 4321 /path/to/file.zip --threads 4
+python3nextdrop.py send 192.168.1.10 --port 4321 /path/to/file.zip --threads 4
 ```
 
 ### CLI Receiving Mode
@@ -90,7 +90,7 @@ python nextdrop.py send 192.168.1.10 --port 4321 /path/to/file.zip --threads 4
 To start a receiver server, use the following command:
 
 ```bash
-python nextdrop.py receive --port <port> <save_dir> [--compress]
+python3 nextdrop.py receive --port <port> <save_dir> [--compress]
 ```
 
 - `--port <port>`: Port to listen on for incoming file transfers (default is `4321`).
@@ -99,6 +99,6 @@ python nextdrop.py receive --port <port> <save_dir> [--compress]
 #### Example
 
 ```bash
-python nextdrop.py receive --port 4321 /path/to/save --compress
+python3 nextdrop.py receive --port 4321 /path/to/save --compress
 ```
 
