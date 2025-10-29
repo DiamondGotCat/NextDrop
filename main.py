@@ -107,9 +107,8 @@ class FileReceiver:
                 if chunk_number == 0:
                     self.filename = request.headers.get('X-Filename', f"received_file_{int(asyncio.get_event_loop().time())}")
                     self.total_chunks = int(request.headers.get('X-Total-Chunks', '1'))
-                    self.receive_bar = ModernProgressBar(total=self.total_chunks, process_name="Receiving", process_color=32)
+                    self.receive_bar = ModernProgressBar(total=self.total_chunks, process_name="Receiving", process_color=32, spinner_mode=False)
                     self.receive_bar.start()
-                    self.receive_bar.notbusy()
                     logger.log(f"nextdp-version: {version}", "INFO")
 
                 async with self.lock:
