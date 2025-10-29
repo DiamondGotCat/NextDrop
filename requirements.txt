@@ -1,0 +1,8 @@
+# Common Dependencies
+nercone-modern
+aiohttp
+tqdm
+zstandard
+
+# GUI
+PyQt6

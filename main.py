@@ -1,15 +1,15 @@
-# NextDrop - High-Speed Data Pipeline - Updated Version
+# NextDrop - High-Speed Data Pipeline
 
 import math
-from KamuJpModern.ModernLogging import ModernLogging
-from KamuJpModern.ModernProgressBar import ModernProgressBar
+from nercone_modern.ModernLogging import ModernLogging
+from nercone_modern.ModernProgressBar import ModernProgressBar
 import asyncio
 import aiohttp
 import aiohttp.web
 import socket
 import os
 import sys
-import zstandard as zstd  # Changed from gzip to zstandard
+import zstandard as zstd
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
@@ -44,12 +44,10 @@ class FileSender:
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=None)) as session:
             tasks = []
             with open(self.file_path, 'rb') as f:
-                compress_bar = ModernProgressBar(total=total_chunks, process_name="Processing", process_color=32)
-                send_bar = ModernProgressBar(total=total_chunks, process_name="Sending", process_color=32)
+                compress_bar = ModernProgressBar(total=total_chunks, process_name="Processing", process_color=32, spinner_mode=False)
+                send_bar = ModernProgressBar(total=total_chunks, process_name="Sending", process_color=32, spinner_mode=False)
                 compress_bar.start()
                 send_bar.start()
-                compress_bar.notbusy()
-                send_bar.notbusy()
                 for i in range(total_chunks):
                     chunk = f.read(CHUNK_SIZE)
                     if self.compress:
@@ -104,10 +102,8 @@ class FileReceiver:
                     return aiohttp.web.Response(status=400, text="ERROR: Invalid chunk number")
                 
                 version = request.headers.get('nextdp-version', '1.0')
-
                 data = await request.read()
 
-                # Get filename and total chunks from the first chunk
                 if chunk_number == 0:
                     self.filename = request.headers.get('X-Filename', f"received_file_{int(asyncio.get_event_loop().time())}")
                     self.total_chunks = int(request.headers.get('X-Total-Chunks', '1'))
@@ -122,7 +118,6 @@ class FileReceiver:
                 if self.receive_bar:
                     self.receive_bar.update(1)
 
-                # Save file if all chunks are received
                 if self.total_chunks is not None and len(self.chunks) == self.total_chunks:
                     self.receive_bar.finish()
                     asyncio.create_task(self.save_file(version))
@@ -135,7 +130,7 @@ class FileReceiver:
         return aiohttp.web.Response(status=404, text="Not Found")
 
     async def start_server(self):
-        app = aiohttp.web.Application(client_max_size=1024 * 1024 * 1024 * 20)  # Set maximum to 20GB
+        app = aiohttp.web.Application(client_max_size=1024 * 1024 * 1024 * 20)
         app.router.add_post('/upload', self.handle_upload)
         runner = aiohttp.web.AppRunner(app)
         await runner.setup()
@@ -160,7 +155,6 @@ class FileReceiver:
                     dctx = zstd.ZstdDecompressor()
                     file_data = dctx.decompress(file_data)
                 else:
-                    # Use gzip for version 1.0
                     import gzip
                     file_data = gzip.decompress(file_data)
             except Exception as e:

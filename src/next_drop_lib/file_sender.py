@@ -2,8 +2,8 @@ import math
 import asyncio
 import aiohttp
 import os
-import zstandard as zstd  # Changed from gzip to zstandard
-from KamuJpModern.ModernLogging import ModernLogging
+import zstandard as zstd
+from nercone_modern.ModernLogging import ModernLogging
 from tqdm import tqdm
 
 CHUNK_SIZE = 1024 * 1024  # 1MB

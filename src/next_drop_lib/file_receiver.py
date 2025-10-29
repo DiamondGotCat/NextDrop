@@ -1,8 +1,8 @@
 import asyncio
 import aiohttp.web
 import os
-import zstandard as zstd  # Changed from gzip to zstandard
-from KamuJpModern.ModernLogging import ModernLogging
+import zstandard as zstd
+from nercone_modern.ModernLogging import ModernLogging
 from tqdm import tqdm
 
 logger = ModernLogging("NextDrop")

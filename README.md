@@ -14,9 +14,6 @@ NextDrop is a high-speed data pipeline capable of transferring large files effic
 ### USFTP: Built-in File integrity check function (SHA-256)
 2 Gbps(0.25 GB/s) in My Wi-fi
 
-## Note
-**UDPDrop** is In Development!!
-
 ## Installation
 
 To install NextDrop, ensure you have python33.7+ installed along with the required dependencies. Run the following command:
@@ -29,13 +26,13 @@ pip3 install next-drop-lib
 **Command-Line Version Requiments (`main.py`)**
 
 ```bash
-pip3 install kamu-jp-modern aiohttp tqdm zstandard
+pip3 install nercone-modern aiohttp tqdm zstandard
 ```
 
 **GUI Version Requiments (`NextDrop.py`)**
 
 ```bash
-pip3 install kamu-jp-modern PyQt6 aiohttp tqdm zstandard
+pip3 install nercone-modern PyQt6 aiohttp tqdm zstandard
 ```
 
 ## Usage

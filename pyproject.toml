@@ -1,3 +1,29 @@
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["uv_build>=0.9.5,<0.10.0"]
+build-backend = "uv_build"
+
+[project]
+name = "next-drop-lib"
+version = "2.1.0"
+description = "A high-speed data pipeline library"
+authors = [
+    { name = "DiamondGotCat", email = "nercone@diamondgotcat.net" },
+]
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.7"
+dependencies = [
+    "aiohttp",
+    "tqdm",
+    "zstandard",
+    "nercone-modern"
+]
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
