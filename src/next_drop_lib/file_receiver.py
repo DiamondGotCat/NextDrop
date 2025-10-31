@@ -2,7 +2,7 @@ import asyncio
 import aiohttp.web
 import os
 import zstandard as zstd
-from nercone_modern.ModernLogging import ModernLogging
+from nercone_modern.logging import ModernLogging
 from tqdm import tqdm
 
 logger = ModernLogging("NextDrop")

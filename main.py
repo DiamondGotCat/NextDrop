@@ -1,8 +1,8 @@
 # NextDrop - High-Speed Data Pipeline
 
 import math
-from nercone_modern.ModernLogging import ModernLogging
-from nercone_modern.ModernProgressBar import ModernProgressBar
+from nercone_modern.logging import ModernLogging
+from nercone_modern.progressbar import ModernProgressBar
 import asyncio
 import aiohttp
 import aiohttp.web
